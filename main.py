@@ -9,7 +9,7 @@ class ImageAugmentation:
                  rotation=(),
                  blur=(),
                  noise=(),
-                 warp=0.0,
+                 warp=(),
                  grayscale=0.0,
                  brightness=0.0,
                  contrast=0.0,
