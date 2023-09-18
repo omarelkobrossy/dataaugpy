@@ -12,16 +12,13 @@ class ImageAugmentation:
                  warp=(),
                  grayscale=0.0,
                  brightness=0.0,
-                 contrast=0.0,
-                 apply_together=False):
+                 contrast=0.0):
         self.rotation = rotation
         self.blur = blur
         self.noise = noise
         self.warp = warp
         self.grayscale = grayscale
-        self.apply_together = apply_together
-        self.outputpath = None
-        self.output_images = []
+        self.output_path = None
 
         # Create a dictionary of non-zero actions (Get all the actions the user wants to perform)
         self.actions = {
@@ -35,7 +32,7 @@ class ImageAugmentation:
         }
         #print(self.actions)
 
-    def ApplyBlur(self, image, blur: BlurType):
+    def ApplyBlur(self, image_name, image, blur: BlurType):
         """
         Apply Blur adjustment to the image.
 
@@ -48,20 +45,18 @@ class ImageAugmentation:
         elif blurType == BlurType.GAUSSIAN_BLUR: blurred_image = cv2.GaussianBlur(image, kernel_size, sigmaX=0)
         elif blurType == BlurType.MEDIAN_BLUR: blurred_image = cv2.medianBlur(image, kernel_size)
         else: raise TypeError(f"Wrong Blur Type {blurType}. Available Blur types: {AVAILABLE_BLUR_TYPES}")
-        cv2.imwrite(f"{self.outputpath}blur.jpg", blurred_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-blurred.jpg", blurred_image)
 
-    def ApplyRotation(self, image, rotate):
+    def ApplyRotation(self, image_name, image, rotate):
         for angle in rotate:
             if angle not in AVAILABLE_ANGLES:
                 raise ValueError(f"Wrong angle specified {angle}. Available Angles: {AVAILABLE_ANGLES}")
         rotated_images = []
         map_angle = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
         for angle in rotate:
-            cv2.imwrite(f"{self.outputpath}rotate{angle}.jpg", cv2.rotate(image, map_angle[angle]))
+            cv2.imwrite(f"{self.output_path}{image_name}-rotate{angle}.jpg", cv2.rotate(image, map_angle[angle]))
 
-
-
-    def ApplyNoise(self, image, noise: NoiseType):
+    def ApplyNoise(self, image_name, image, noise: NoiseType):
         """
         Apply brightness adjustment to the image.
 
@@ -99,9 +94,9 @@ class ImageAugmentation:
             stripe_pattern[::offset, ::offset] = color  # Add a horizontal and vertical stripe every (offset) pixels
             # Add the box pattern to the image
             noisy_image = cv2.add(image, stripe_pattern)
-        cv2.imwrite(f"{self.outputpath}noise.jpg", noisy_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-noise.jpg", noisy_image)
 
-    def ApplyWarp(self, image, warp: WarpType):
+    def ApplyWarp(self, image_name, image, warp: WarpType):
         """
         Apply brightness adjustment to the image.
 
@@ -142,9 +137,9 @@ class ImageAugmentation:
             # Apply the bulge warp using cv2.remap
             bulged_image = cv2.remap(image, distorted_map_x, distorted_map_y, interpolation=cv2.INTER_LINEAR)
         else: raise TypeError("Wrong Warp Type")
-        cv2.imwrite(f"{self.outputpath}warp.jpg", bulged_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-warped.jpg", bulged_image)
     
-    def ApplyGrayscale(self, image, grayscale: float):
+    def ApplyGrayscale(self, image_name, image, grayscale: float):
         """
         Apply grayscale adjustment to the image.
 
@@ -155,9 +150,9 @@ class ImageAugmentation:
         # Adjust the intensity by multiplying the pixel values by a factor (e.g., 0.5 for reduced intensity)
         intensity_factor = 0.5  # Adjust this value as needed
         adjusted_gray_image = (gray_image * intensity_factor).astype('uint8')
-        cv2.imwrite(f"{self.outputpath}grayscale.jpg", adjusted_gray_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-grayscale.jpg", adjusted_gray_image)
     
-    def ApplyBrightness(self, image, brightness: float):
+    def ApplyBrightness(self, image_name, image, brightness: float):
         """
         Apply brightness adjustment to the image.
 
@@ -167,28 +162,28 @@ class ImageAugmentation:
             raise ValueError("Brightness must be a float value between 0 and 1.")
         # Apply gamma correction to adjust brightness
         adjusted_image = np.clip(image * brightness, 0, 255).astype(np.uint8)
-        cv2.imwrite(f"{self.outputpath}brightness.jpg", adjusted_image)
+        cv2.imwrite(f"{self.output_path}brightness.jpg", adjusted_image)
     
-    def ApplyContrast(self, image, contrast):
+    def ApplyContrast(self, image_name, image, contrast):
         # Define the contrast factor (e.g., 1.5 for increased contrast, 0.5 for reduced contrast)
         contrast_factor = contrast # Adjust this value as needed
         # Apply contrast adjustment
         adjusted_image = np.clip(image * contrast_factor, 0, 255).astype(np.uint8)
-        cv2.imwrite(f"{self.outputpath}contrast.jpg", adjusted_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-contrast.jpg", adjusted_image)
 
-    def outputPath(self, output_path):
-        self.outputpath = output_path
+    def setOutputPath(self, output_path):
+        if not (output_path[-1] == "/"): output_path+="/"
+        self.output_path = output_path
 
     def run(self, image):
-        if not self.outputpath: raise RuntimeError("Output Path Invalid/Unspecified")
-        self.image_name = image
+        if not self.output_path: raise RuntimeError("Output Path Invalid/Unspecified")
+        self.image_name = image.split('.')[0]
         self.image = cv2.imread(image)
         self.height, self.width, self.channels = self.image.shape
         for action, arguments in self.actions.items():
             if not arguments: continue
             params, function = arguments
-            #print(action, params)
-            function(self.image, params)
+            function(self.image_name, self.image, params)
 
 augmentor = ImageAugmentation(rotation=(90, 180, 270), 
                               blur=(BlurType.BOX_BLUR, 5), 
@@ -197,5 +192,5 @@ augmentor = ImageAugmentation(rotation=(90, 180, 270),
                               grayscale=0.5,
                               brightness=0.2,
                               contrast=5)
-augmentor.outputPath("output/")
+augmentor.setOutputPath("output/")
 augmentor.run(img)
