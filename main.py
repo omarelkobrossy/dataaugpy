@@ -162,7 +162,7 @@ class ImageAugmentation:
             raise ValueError("Brightness must be a float value between 0 and 1.")
         # Apply gamma correction to adjust brightness
         adjusted_image = np.clip(image * brightness, 0, 255).astype(np.uint8)
-        cv2.imwrite(f"{self.output_path}brightness.jpg", adjusted_image)
+        cv2.imwrite(f"{self.output_path}{image_name}-brightness.jpg", adjusted_image)
     
     def ApplyContrast(self, image_name, image, contrast):
         # Define the contrast factor (e.g., 1.5 for increased contrast, 0.5 for reduced contrast)
